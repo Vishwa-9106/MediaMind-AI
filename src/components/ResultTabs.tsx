@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, BookOpen, Baby, Sparkles } from 'lucide-react';
+import { FileText, BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -27,23 +27,11 @@ const ResultTabs = ({ results }: ResultTabsProps) => {
       icon: BookOpen,
       content: results.detailedExplanation,
     },
-    {
-      value: 'child',
-      label: 'For Kids',
-      icon: Baby,
-      content: results.childFriendly,
-    },
-    {
-      value: 'story',
-      label: 'Story Mode',
-      icon: Sparkles,
-      content: results.storytelling,
-    },
   ];
 
   return (
     <Tabs defaultValue="simple" className="w-full">
-      <TabsList className="glass-card mb-8 grid w-full grid-cols-2 gap-2 rounded-2xl p-2 lg:grid-cols-4">
+      <TabsList className="glass-card mb-8 grid w-full grid-cols-2 gap-2 rounded-2xl p-2 lg:grid-cols-2">
         {tabs.map((tab) => (
           <TabsTrigger
             key={tab.value}
@@ -66,13 +54,7 @@ const ResultTabs = ({ results }: ResultTabsProps) => {
             className="glass-card rounded-3xl p-8"
           >
             <div className="prose prose-slate dark:prose-invert max-w-none">
-              {tab.value === 'detailed' ? (
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{tab.content}</ReactMarkdown>
-              ) : (
-                <div className="whitespace-pre-wrap text-base leading-relaxed">
-                  {tab.content}
-                </div>
-              )}
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{tab.content}</ReactMarkdown>
             </div>
           </motion.div>
         </TabsContent>

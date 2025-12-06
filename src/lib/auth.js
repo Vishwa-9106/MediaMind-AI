@@ -1,10 +1,20 @@
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
-  signOut as firebaseSignOut
+  signInWithPopup,
+  GoogleAuthProvider,
+  GithubAuthProvider,
+  signOut as firebaseSignOut,
+  onAuthStateChanged
 } from "firebase/auth";
 import { auth } from "@/firebase/config";
 import { getUserDocument, createUserDocument } from "@/utils/firestore";
+
+// Google Auth Provider
+const googleProvider = new GoogleAuthProvider();
+
+// GitHub Auth Provider
+const githubProvider = new GithubAuthProvider();
 
 /**
  * Sign in with email and password
@@ -18,7 +28,7 @@ export const signInWithEmail = async (email, password) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
-    // Fetch user data from Firestore
+    // Fetch user data from Firestore (optional, as we handle errors gracefully)
     const userData = await getUserDocument(user.uid);
     
     return { 
@@ -60,17 +70,28 @@ export const signUpWithEmail = async (email, password) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
-    // Create user document in Firestore
-    const userData = await createUserDocument(user.uid, user.email);
-    
-    return { 
-      success: true, 
-      user: {
-        uid: user.uid,
-        email: user.email,
-        ...userData
-      }
-    };
+    // Create user document in Firestore (handle errors gracefully)
+    try {
+      const userData = await createUserDocument(user.uid, user.email);
+      return { 
+        success: true, 
+        user: {
+          uid: user.uid,
+          email: user.email,
+          ...userData
+        }
+      };
+    } catch (firestoreError) {
+      // Even if Firestore operation fails, we still consider signup successful
+      console.warn("Failed to create user document in Firestore:", firestoreError);
+      return { 
+        success: true, 
+        user: {
+          uid: user.uid,
+          email: user.email
+        }
+      };
+    }
   } catch (error) {
     console.error("Sign up error:", error);
     
@@ -89,6 +110,88 @@ export const signUpWithEmail = async (email, password) => {
 };
 
 /**
+ * Sign in with Google
+ * @returns {Promise<{success: boolean, user?: object, error?: string}>}
+ */
+export const signInWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    
+    // Check if user document exists, create if not (handle errors gracefully)
+    try {
+      let userData = await getUserDocument(user.uid);
+      if (!userData) {
+        userData = await createUserDocument(user.uid, user.email);
+      }
+      
+      return { 
+        success: true, 
+        user: {
+          uid: user.uid,
+          email: user.email,
+          ...userData
+        }
+      };
+    } catch (firestoreError) {
+      // Even if Firestore operation fails, we still consider signin successful
+      console.warn("Failed to access user document in Firestore:", firestoreError);
+      return { 
+        success: true, 
+        user: {
+          uid: user.uid,
+          email: user.email
+        }
+      };
+    }
+  } catch (error) {
+    console.error("Google sign in error:", error);
+    return { success: false, error: error.message || "Failed to sign in with Google." };
+  }
+};
+
+/**
+ * Sign in with GitHub
+ * @returns {Promise<{success: boolean, user?: object, error?: string}>}
+ */
+export const signInWithGithub = async () => {
+  try {
+    const result = await signInWithPopup(auth, githubProvider);
+    const user = result.user;
+    
+    // Check if user document exists, create if not (handle errors gracefully)
+    try {
+      let userData = await getUserDocument(user.uid);
+      if (!userData) {
+        userData = await createUserDocument(user.uid, user.email);
+      }
+      
+      return { 
+        success: true, 
+        user: {
+          uid: user.uid,
+          email: user.email,
+          ...userData
+        }
+      };
+    } catch (firestoreError) {
+      // Even if Firestore operation fails, we still consider signin successful
+      console.warn("Failed to access user document in Firestore:", firestoreError);
+      return { 
+        success: true, 
+        user: {
+          uid: user.uid,
+          email: user.email
+        }
+      };
+    }
+  } catch (error) {
+    console.error("GitHub sign in error:", error);
+    return { success: false, error: error.message || "Failed to sign in with GitHub." };
+  }
+};
+
+/**
  * Sign out the current user
  * @returns {Promise<{success: boolean, error?: string}>}
  */
@@ -100,4 +203,13 @@ export const signOut = async () => {
     console.error("Sign out error:", error);
     return { success: false, error: error.message || "Failed to sign out." };
   }
+};
+
+/**
+ * Listen for authentication state changes
+ * @param {function} callback 
+ * @returns {function} Unsubscribe function
+ */
+export const onAuthStateChange = (callback) => {
+  return onAuthStateChanged(auth, callback);
 };

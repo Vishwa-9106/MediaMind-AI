@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { signOutUser, onAuthStateChange } from "@/lib/auth";
+import { signOut, onAuthStateChange } from "@/lib/auth";
 import { User } from "firebase/auth";
 
 const Dashboard = () => {
@@ -16,7 +16,8 @@ const Dashboard = () => {
         setUser(currentUser);
         setLoading(false);
       } else {
-        navigate('/auth');
+        // Redirect to home page if not authenticated
+        navigate('/');
       }
     });
 
@@ -24,9 +25,10 @@ const Dashboard = () => {
   }, [navigate]);
 
   const handleSignOut = async () => {
-    const result = await signOutUser();
+    const result = await signOut();
     if (result.success) {
-      navigate('/auth');
+      // Redirect to home page after sign out
+      navigate('/');
     }
   };
 

@@ -28,6 +28,7 @@ export interface UploadResponse {
   filename: string;
   fileType: string;
   uploadedAt: string;
+  resultText?: string;
 }
 
 export interface ProcessingStatus {
@@ -51,138 +52,165 @@ export interface ResultData {
   thumbnail?: string;
 }
 
+// Helpers to persist latest analysis locally per id
+const saveResult = (data: ResultData) => {
+  try { sessionStorage.setItem(`result:${data.id}`, JSON.stringify(data)); } catch {}
+};
+const loadResult = (id: string): ResultData | null => {
+  try {
+    const raw = sessionStorage.getItem(`result:${id}`);
+    return raw ? JSON.parse(raw) as ResultData : null;
+  } catch { return null; }
+};
+
 // Upload file to backend
 export const uploadFile = async (file: File): Promise<UploadResponse> => {
   const formData = new FormData();
   formData.append('file', file);
 
-  // Mock response for now
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        id: `mock-${Date.now()}`,
-        status: 'pending',
-        filename: file.name,
-        fileType: file.type,
-        uploadedAt: new Date().toISOString(),
-      });
-    }, 1000);
+  // Call backend proxy -> Gemini
+  const response = await fetch(`${API_BASE_URL}/analyze`, {
+    method: 'POST',
+    body: formData,
   });
-
-  // Actual implementation:
-  // const response = await api.post<UploadResponse>('/upload', formData, {
-  //   headers: { 'Content-Type': 'multipart/form-data' },
-  // });
-  // return response.data;
+  if (!response.ok) {
+    let details: any = undefined;
+    try {
+      details = await response.json();
+    } catch {
+      try { details = await response.text(); } catch {}
+    }
+    const msg = typeof details === 'string' ? details : (details?.error || 'Upload failed');
+    throw new Error(msg);
+  }
+  const data = await response.json();
+  // Build and persist a real ResultData for the Result page
+  const id = `job-${Date.now()}`;
+  const resultData: ResultData = {
+    id,
+    filename: file.name,
+    fileType: file.type || 'application/octet-stream',
+    uploadedAt: new Date().toISOString(),
+    results: {
+      simpleSummary: data?.results?.simpleSummary ?? data.resultText ?? '',
+      detailedExplanation: data?.results?.detailedExplanation ?? data.resultText ?? '',
+      childFriendly: data?.results?.childFriendly ?? data.resultText ?? '',
+      storytelling: data?.results?.storytelling ?? data.resultText ?? '',
+    },
+  };
+  saveResult(resultData);
+  return {
+    id,
+    status: data.status || 'completed',
+    filename: file.name,
+    fileType: file.type,
+    uploadedAt: new Date().toISOString(),
+    resultText: data?.results?.simpleSummary ?? data.resultText,
+  };
 };
 
 // Upload via URL/link
 export const uploadFromUrl = async (url: string): Promise<UploadResponse> => {
-  // Mock response
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        id: `mock-url-${Date.now()}`,
-        status: 'pending',
-        filename: url.split('/').pop() || 'link',
-        fileType: 'url',
-        uploadedAt: new Date().toISOString(),
-      });
-    }, 1000);
+  const response = await fetch(`${API_BASE_URL}/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
   });
-
-  // Actual implementation:
-  // const response = await api.post<UploadResponse>('/upload/url', { url });
-  // return response.data;
+  if (!response.ok) {
+    let details: any = undefined;
+    try {
+      details = await response.json();
+    } catch {
+      try { details = await response.text(); } catch {}
+    }
+    const msg = typeof details === 'string' ? details : (details?.error || 'URL analyze failed');
+    throw new Error(msg);
+  }
+  const data = await response.json();
+  const id = `job-url-${Date.now()}`;
+  const resultData: ResultData = {
+    id,
+    filename: url.split('/').pop() || 'link',
+    fileType: 'url',
+    uploadedAt: new Date().toISOString(),
+    results: {
+      simpleSummary: data?.results?.simpleSummary ?? data.resultText ?? '',
+      detailedExplanation: data?.results?.detailedExplanation ?? data.resultText ?? '',
+      childFriendly: data?.results?.childFriendly ?? data.resultText ?? '',
+      storytelling: data?.results?.storytelling ?? data.resultText ?? '',
+    },
+  };
+  saveResult(resultData);
+  return {
+    id,
+    status: data.status || 'completed',
+    filename: url.split('/').pop() || 'link',
+    fileType: 'url',
+    uploadedAt: new Date().toISOString(),
+    resultText: data?.results?.simpleSummary ?? data.resultText,
+  };
 };
 
 // Check processing status
 export const checkStatus = async (id: string): Promise<ProcessingStatus> => {
-  // Mock response with progressive status
+  // If we have a stored result for this id, mark as completed immediately
+  const existing = loadResult(id);
+  if (existing) {
+    return {
+      id,
+      status: 'completed',
+      progress: 100,
+      message: 'Analysis complete!'
+    };
+  }
+  // Fallback to a short progressing mock
   return new Promise((resolve) => {
     setTimeout(() => {
-      const random = Math.random();
-      resolve({
-        id,
-        status: random > 0.3 ? 'completed' : 'processing',
-        progress: random > 0.3 ? 100 : Math.floor(Math.random() * 80) + 10,
-        message: random > 0.3 ? 'Analysis complete!' : 'AI is analyzing your content...',
-      });
-    }, 500);
+      resolve({ id, status: 'processing', progress: 50, message: 'Processing...' });
+    }, 300);
   });
-
-  // Actual implementation:
-  // const response = await api.get<ProcessingStatus>(`/status/${id}`);
-  // return response.data;
 };
 
 // Get result by ID
 export const getResult = async (id: string): Promise<ResultData> => {
-  // Mock response
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        id,
-        filename: 'sample-video.mp4',
-        fileType: 'video/mp4',
-        uploadedAt: new Date().toISOString(),
-        results: {
-          simpleSummary: 'This video demonstrates a beautiful sunset over mountains with calm ambient music. The scene transitions from day to evening, showcasing natural colors and peaceful atmosphere.',
-          detailedExplanation: `# Detailed Analysis
-
-## Visual Content
-The video captures a stunning natural landscape featuring:
-- Mountain silhouettes against a vibrant sky
-- Color transitions from golden yellows to deep oranges and purples
-- Smooth camera panning showing the breadth of the scene
-
-## Audio Elements
-- Ambient nature sounds including bird calls
-- Gentle wind rustling through trees
-- Soft instrumental music in the background
-
-## Technical Aspects
-- Resolution: 1920x1080 (Full HD)
-- Frame rate: 30 fps
-- Duration: Approximately 45 seconds
-- Camera movement: Slow horizontal pan
-
-## Mood and Atmosphere
-The overall tone is peaceful and contemplative, ideal for meditation or relaxation content.`,
-          childFriendly: `🌅 **A Beautiful Sunset Story**
-
-Imagine you're standing on top of a big hill, and the sun is saying goodnight! 
-
-The sky turns into a magical painting with colors like:
-- 🧡 Orange (like a juicy orange!)
-- 💜 Purple (like grape juice!)
-- 💛 Yellow (like a banana!)
-
-You can hear little birds singing their bedtime songs and feel a gentle breeze on your face. It's like nature is giving everyone a big, warm hug before going to sleep!
-
-✨ This video helps us remember that every ending (like sunset) is beautiful and peaceful.`,
-          storytelling: `**The Mountain's Evening Tale**
-
-As the ancient peaks stood sentinel over the valley, the day began its graceful farewell. The sun, that tireless wanderer across the sky, painted its final masterpiece of the day.
-
-First came the gold—warm and generous, spilling across the clouds like liquid amber. Then the oranges deepened, telling stories of distant deserts and autumn leaves. Finally, the purples emerged, mysterious and calm, whispering promises of starlit nights to come.
-
-The mountains themselves seemed to exhale, releasing the warmth they'd gathered throughout the day. Birds called to one another in that special language they use only at dusk, coordinating their evening routines.
-
-This wasn't just a sunset—it was a daily ceremony, a reminder that every ending holds its own kind of beauty, and that tomorrow will bring another beginning.`,
-        },
-        thumbnail: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop',
-      });
-    }, 800);
-  });
-
-  // Actual implementation:
-  // const response = await api.get<ResultData>(`/result/${id}`);
-  // return response.data;
+  const stored = loadResult(id);
+  if (stored) return stored;
+  // If nothing stored, return a minimal empty result to avoid demo content
+  return {
+    id,
+    filename: 'unknown',
+    fileType: 'application/octet-stream',
+    uploadedAt: new Date().toISOString(),
+    results: {
+      simpleSummary: '',
+      detailedExplanation: '',
+      childFriendly: '',
+      storytelling: '',
+    },
+  };
 };
 
 // Get upload history
 export const getHistory = async (): Promise<ResultData[]> => {
+  try {
+    const items: ResultData[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key && key.startsWith('result:')) {
+        try {
+          const raw = sessionStorage.getItem(key);
+          if (raw) {
+            const data = JSON.parse(raw) as ResultData;
+            items.push(data);
+          }
+        } catch {}
+      }
+    }
+    items.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+    return items;
+  } catch {
+    return [];
+  }
   // Mock response
   return new Promise((resolve) => {
     setTimeout(() => {

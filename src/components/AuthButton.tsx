@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { onAuthStateChange, signOutUser } from "@/lib/auth";
+import { onAuthStateChange, signOut } from "@/lib/auth";
 import { useNavigate } from "react-router-dom";
 import { User } from "firebase/auth";
 
@@ -26,9 +26,10 @@ const AuthButton = () => {
   }, []);
 
   const handleSignOut = async () => {
-    const result = await signOutUser();
+    const result = await signOut();
     if (result.success) {
-      navigate('/auth');
+      // Redirect to home page after sign out
+      navigate('/');
     }
   };
 

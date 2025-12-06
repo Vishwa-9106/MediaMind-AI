@@ -12,7 +12,7 @@ import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
-import ProtectedRoute from "./components/ProtectedRoute";
+import PrivateRoute from "./components/PrivateRoute";
 
 const queryClient = new QueryClient();
 
@@ -28,49 +28,49 @@ const App = () => (
           <Route 
             path="/dashboard" 
             element={
-              <ProtectedRoute>
+              <PrivateRoute>
                 <Dashboard />
-              </ProtectedRoute>
+              </PrivateRoute>
             } 
           />
           <Route 
             path="/upload" 
             element={
-              <ProtectedRoute>
+              <PrivateRoute>
                 <Upload />
-              </ProtectedRoute>
+              </PrivateRoute>
             } 
           />
           <Route 
             path="/process/:id" 
             element={
-              <ProtectedRoute>
+              <PrivateRoute>
                 <Process />
-              </ProtectedRoute>
+              </PrivateRoute>
             } 
           />
           <Route 
             path="/result/:id" 
             element={
-              <ProtectedRoute>
+              <PrivateRoute>
                 <Result />
-              </ProtectedRoute>
+              </PrivateRoute>
             } 
           />
           <Route 
             path="/history" 
             element={
-              <ProtectedRoute>
+              <PrivateRoute>
                 <History />
-              </ProtectedRoute>
+              </PrivateRoute>
             } 
           />
           <Route 
             path="/settings" 
             element={
-              <ProtectedRoute>
+              <PrivateRoute>
                 <Settings />
-              </ProtectedRoute>
+              </PrivateRoute>
             } 
           />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

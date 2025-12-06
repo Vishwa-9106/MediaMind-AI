@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Separator } from "@/components/ui/separator";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
+import { Eye, EyeOff } from "lucide-react";
 import { 
   signInWithEmail, 
   signUpWithEmail, 
@@ -19,6 +20,7 @@ import { User } from "firebase/auth";
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -27,7 +29,8 @@ const Auth = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChange((user: User | null) => {
       if (user) {
-        navigate('/dashboard');
+        // Redirect to home page if already logged in
+        navigate('/');
       }
     });
 
@@ -41,12 +44,14 @@ const Auth = () => {
     if (isLogin) {
       const result = await signInWithEmail(email, password);
       if (result.success) {
-        navigate('/dashboard');
+        // Redirect to home page after successful login
+        navigate('/');
       }
     } else {
       const result = await signUpWithEmail(email, password);
       if (result.success) {
-        navigate('/dashboard');
+        // Redirect to home page after successful signup
+        navigate('/');
       }
     }
     
@@ -57,7 +62,8 @@ const Auth = () => {
     setLoading(true);
     const result = await signInWithGoogle();
     if (result.success) {
-      navigate('/dashboard');
+      // Redirect to home page after successful Google sign in
+      navigate('/');
     }
     setLoading(false);
   };
@@ -66,9 +72,14 @@ const Auth = () => {
     setLoading(true);
     const result = await signInWithGithub();
     if (result.success) {
-      navigate('/dashboard');
+      // Redirect to home page after successful GitHub sign in
+      navigate('/');
     }
     setLoading(false);
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -106,14 +117,29 @@ const Auth = () => {
                   </button>
                 )}
               </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                  onClick={togglePasswordVisibility}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-500" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-500" />
+                  )}
+                </Button>
+              </div>
             </div>
             <Button 
               type="submit" 

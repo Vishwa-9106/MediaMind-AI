@@ -18,7 +18,8 @@ export const getUserDocument = async (userId) => {
     }
   } catch (error) {
     console.error("Error fetching user document:", error);
-    throw new Error("Failed to fetch user data.");
+    // Return null instead of throwing error to allow app to continue
+    return null;
   }
 };
 
@@ -45,7 +46,14 @@ export const createUserDocument = async (userId, email) => {
     return userData;
   } catch (error) {
     console.error("Error creating user document:", error);
-    throw new Error("Failed to create user profile.");
+    // Return basic user data instead of throwing error
+    return {
+      uid: userId,
+      email: email,
+      createdAt: new Date(),
+      displayName: null,
+      photoURL: null
+    };
   }
 };
 
@@ -61,6 +69,6 @@ export const updateUserDocument = async (userId, data) => {
     await setDoc(userDocRef, data, { merge: true });
   } catch (error) {
     console.error("Error updating user document:", error);
-    throw new Error("Failed to update user profile.");
+    // Silently fail for update operations
   }
 };
