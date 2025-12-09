@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-# Welcome to your Lovable project
-
-## Project info
-
-**URL**: https://lovable.dev/projects/d1acb6b4-3098-4755-8df1-52f7e4a64570
 
 ## How can I edit this code?
 

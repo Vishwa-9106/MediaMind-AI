@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const app = express();
 app.use(cors());
@@ -201,6 +203,17 @@ app.post('/api/analyze', upload.single('file'), async (req, res) => {
 const port = process.env.PORT || 3000;
 // Only start the server when running locally or in non-Vercel environments
 if (!process.env.VERCEL) {
+  // Serve the built frontend in production
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const distPath = path.resolve(__dirname, '../dist');
+  app.use(express.static(distPath));
+
+  // SPA fallback for client-side routing (after API routes)
+  app.get(/.*/, (_req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+
   app.listen(port, () => {
     console.log(`API running at http://localhost:${port}`);
   });
